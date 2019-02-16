@@ -1,7 +1,6 @@
 const nosql = require('nosql')
 const sha256 = require('sha256')
-const fs = require('fs')
-const rimraf = require("rimraf")
+const fs = require('fs-extra')
 const path = require('path')
 const assert = require('assert').strict;
 const uuid = require('uuid/v1');
@@ -35,6 +34,7 @@ const uuid = require('uuid/v1');
 //
 var db = undefined
 var cache = undefined
+var logon = false
 
 var getUserFolder = function(user_id) {
     // returns user's cache folder 
@@ -60,6 +60,7 @@ var getImagePath = function(user_id, image_id, image_name) {
 var imageWriteToFile = function(image_path, image, callback) {
     // callback(err, image_id)
     
+    if (logon)
     console.log("imageWriteToFile:",
         "image_path=", image_path)
         
@@ -72,6 +73,7 @@ var imageWriteToFile = function(image_path, image, callback) {
 var imageReadFromFile = function(image_path, callback) {
     // callback(err, image_data)
     
+    if (logon)
     console.log("imageReadFromFile:",
         "image_path=", image_path)
     
@@ -79,55 +81,35 @@ var imageReadFromFile = function(image_path, callback) {
     fs.readFile(image_path, callback)
 }
 
-var dbInsertOrUndate = function(db_info, callback) {
-    // callback(err)
-    
-    // either update existing record
-    // or create new one
-    db.update(db_info).callback(function(err, count) {
-        if (err) {
-            callback(err)
-        } else if (0 === count) {
-            // cannot update, there are no such records
-            // insert it
-            db.insert(db_info).callback(function(err, count) {
-                callback(err)                  
-            })
-        } else {
-            assert.ok(1 === count)
-            callback(null) 
-        }
-    })
-}
-
-var dbFindCallback = function(err, responce, callback) {
+var dbFindCallback = function(err, responce, image_id, callback) {
     // callback(err, image_info)
     
     if (err) {
         callback(err)
         return
     }
-    console.log(responce)
-    if (responce.lenght == 0){
+    if (responce.length == 0){
         callback(new Error("Cannot find image with id=" + image_id))
         return
     }
-    if (responce.lenght > 1){
-        callback(new Error("Found " + responce.lenght + " images with id=" + image_id))
+    if (responce.length > 1){
+        callback(new Error("Found " + responce.length + " images with id=" + image_id))
         return
     }
+
     callback(err, responce[0])
 }
 
 var dbFindFilter = function(user_id, image_id, subimage_id, filter) {
     filter.where('user_id', user_id)
     filter.where('image_id', image_id)
-    if (subimage_id !== undefined) {
+    if (subimage_id !== null) {
         filter.where('subimage_id', subimage_id)
         filter.where('origin', false)
     } else {
         filter.where('origin', true)
     }
+    //console.log(filter)
 }
 
 var dbFindImage = function(user_id, image_id, subimage_id, callback) {
@@ -136,8 +118,8 @@ var dbFindImage = function(user_id, image_id, subimage_id, callback) {
     db.find().make(function(filter) {
         dbFindFilter(user_id, image_id, subimage_id, filter)
         filter.callback((err, responce) => {
-            dbFindCallback(err, responce, callback)
-        })  
+            dbFindCallback(err, responce, image_id, callback)
+        })
     })
 }
 
@@ -147,6 +129,7 @@ var dbRemoveImage = function(user_id, image_id, subimage_id, callback) {
     db.remove().make(function(filter) {
         dbFindFilter(user_id, image_id, subimage_id, filter)
         filter.callback(function(err, count) {
+            
             if (count === 0) {
                 callback(new Error("Cannot find image by id " + image_id))
             } else {
@@ -170,7 +153,8 @@ module.exports = {
         image_file = getImagePath(user_id, image_id, filename)
         image_folder = path.dirname(image_file)
         timestamp = new Date().toISOString()
-        
+
+        if (logon)
         console.log("addImage: ", 
             "user_id=", user_id, 
             "image_id=", image_id)
@@ -200,13 +184,13 @@ module.exports = {
                 return
             }
             
-            dbInsertOrUndate(image_info, (err) => {
+            db.insert(image_info).callback(function(err, count) {
                 if (err) {
                     // remove the image folder
                     // try-catch for sync function?
-                    rimraf.sync(path.dirname(image_file))
+                    fs.removeSync(path.dirname(image_file))
                 }
-                callback(err, image_id)
+                callback(err, image_id)             
             })
         })
     },
@@ -215,13 +199,14 @@ module.exports = {
         // the function removes base (oridin) image from the DB
         // need to remove image folder with all images
         
+        if (logon)
         console.log("removeImage: ", 
             "user_id=", user_id, 
             "image_id=", image_id)
             
         image_folder = getImageFolder(user_id, image_id)
         
-        rimraf(image_folder, function(err) {
+        fs.remove(image_folder, err => {
             if (err) {
                 callback(err)
                 return
@@ -234,6 +219,7 @@ module.exports = {
         // callback(err, image_data)
         // return base (oridin) or sub-image data by ID
         
+        if (logon)
         console.log("getImage:", 
             "user_id=", user_id,
             "image_id=", image_id)
@@ -244,8 +230,7 @@ module.exports = {
                 callback(err)
                 return
             }
-            
-            console.log(" >>>>> IMAGE NAME: " + image_info.filename)
+
             image_file = getImagePath(user_id, image_id, image_info.filename)
             imageReadFromFile(image_file, callback)
         })
@@ -253,6 +238,7 @@ module.exports = {
     getImageList: function(user_id, callback) {
         // callback(err, image_list)
         
+        if (logon)
         console.log("getImageList: user_id=", user_id)
         
         // TODO: it should return list by ragne, 
@@ -268,10 +254,12 @@ module.exports = {
     removeUserData: function(user_id, callback) {
         // callback(err)
         
+        if (logon)
         console.log("removeUser: user_id=", user_id)
+    
         user_folder = getUserFolder(user_id)
         
-        rimraf(user_folder, function(err) {
+        fs.remove(user_folder, err => {
             if (err) {
                 callback(err)
                 return
@@ -294,6 +282,7 @@ module.exports = {
         image_file = getImagePath(user_id, image_id, filename)
         timestamp = new Date().toISOString()
         
+        if (logon)
         console.log("addSubImage: ", 
             "user_id=", user_id, 
             "subimage_id=", subimage_id,
@@ -316,24 +305,30 @@ module.exports = {
                 return
             }
             
-            console.log(" >>>>> IMAGE NAME: " + image_info.filename)
+            dbFindImage(user_id, image_id, subimage_id, (err, subimg_info) => {
             
-            // Save an image to fs
-            // in case of success - add record to db
-            imageWriteToFile(image_file, subimage, (err, image_id) => {
-                
-                if (err) {
-                    callback(err)
+                if (!err && subimg_info.length !== 0) {
+                    callback(new Error("Subimage already exists " + subimage_id))
                     return
                 }
                 
-                dbInsertOrUndate(image_info, (err) => {
+                // Save an image to fs
+                // in case of success - add record to db
+                imageWriteToFile(image_file, subimage, (err, image_id) => {
+                    
                     if (err) {
-                        // remove the sub-image only
-                        // try-catch for sync function?
-                        fs.unlinkSync(image_file)
+                        callback(err)
+                        return
                     }
-                    callback(err, image_id)
+                    
+                    db.insert(image_info).callback(function(err, count) {
+                        if (err) {
+                            // remove the sub-image only
+                            // try-catch for sync function?
+                            fs.unlinkSync(image_file)
+                        }
+                        callback(err, subimage_id)           
+                    })
                 })
             })
         })
@@ -342,6 +337,7 @@ module.exports = {
         // callback(err)
         // the function removes only sub-image from the DB and FS
         
+        if (logon)
         console.log("removeSubImage: ", 
             "user_id=", user_id,
             "image_id=", image_id,
@@ -362,7 +358,7 @@ module.exports = {
                     return
                 }
                 
-                dbRemoveImage(user_id, image_id, subimage_id)
+                dbRemoveImage(user_id, image_id, subimage_id, callback)
             })
         })
     },
@@ -370,6 +366,7 @@ module.exports = {
         // callback(err, image_data)
         // return base (oridin) or sub-image data by ID
         
+        if (logon)
         console.log("getSubImage:", 
             "user_id=", user_id,
             "image_id=", image_id,
@@ -382,7 +379,6 @@ module.exports = {
                 return
             }
             
-            console.log(" >>>>> IMAGE NAME: " + image_info.filename)
             image_file = getImagePath(user_id, image_id, image_info.filename)
             imageReadFromFile(image_file, callback)
         })
@@ -390,6 +386,7 @@ module.exports = {
     getSubImageList: function(user_id, image_id, callback) {
         // callback(err, image_list)
         
+        if (logon)
         console.log("getSubImageList: ", user_id, )
         
         // TODO: it should return list by ragne, 
