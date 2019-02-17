@@ -15,6 +15,22 @@ All images should be returned as link to image and width and height values.
 AUTH and USER managements are not a part of the API
 */
 
+function makeImageLink(user_id, image_id, subimage_id) {
+    
+    // it is bad to use "image" here as is
+    var res = "/image/" + user_id + "/"
+    
+    if (image_id) {
+        res += image_id + "/"
+        
+        if (subimage_id) {
+            res += subimage_id + "/"
+        }
+    }
+    
+    return res
+}
+
 function reqError(err) {
     console.log(err)
     assert(err)
@@ -32,7 +48,7 @@ function reqImage(user_id, image_id, subimage_id, width, height) {
         subimage_id: subimage_id, 
         width: width, 
         height: height,
-        subimage_link: ""
+        subimage_link: makeImageLink(user_id, image_id, subimage_id)
     }
 }
 
@@ -196,8 +212,7 @@ module.exports = {
                         timestamp: el.timestamp,
                         height: el.meta.height,
                         width: el.meta.width,
-                        link: "/image/"+req.params.user_id+"/"+el.image_id+"/"+el.subimage_id+"/"
-                        // /image/ - it is too bad to use it as here
+                        link: makeImageLink(req.params.user_id, el.image_id, el.subimage_id)
                     })
                 })
                 
@@ -218,8 +233,7 @@ module.exports = {
                     data.push({
                         image_id: el.image_id,
                         timestamp: el.timestamp,
-                        link: "/image/"+req.params.user_id+"/"+el.image_id+"/"
-                        // /image/ - it is too bad to use it as here
+                        link: makeImageLink(req.params.user_id, el.image_id)
                     })
                 })
                 
