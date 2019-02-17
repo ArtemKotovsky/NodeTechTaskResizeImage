@@ -76,7 +76,7 @@ describe('removeImage', function() {
         // add an image
         db.addImage(user_id_1, test_image_1, (err, image_id) => {
             if (err) return done(err)
-            wrong_id = image_id + "_"
+            var wrong_id = image_id + "_"
             // remove an image with unkonwn id
             // user id is valid
             db.removeImage(user_id_1, wrong_id, err => {
@@ -141,7 +141,7 @@ describe('getImage', function() {
         db.addImage(user_id_1, test_image_1, (err, image_id) => {
             if (err) return done(err)
             // get the image
-            wrong_id = image_id + "_"
+            var wrong_id = image_id + "_"
             db.getImage(user_id_1, image_id, (err, image_data) => {
                 done(err)
             })
@@ -256,7 +256,8 @@ describe('addSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 done(err)
@@ -270,11 +271,12 @@ describe('addSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 // add the same subimage again
-                db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+                db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                     done(!err)
                 })
             })
@@ -290,13 +292,13 @@ describe('addSubImage', function() {
             db.addImage(user_id_2, test_image_1, (err, image_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_1_hash, image_id)
-        
                 // add subimage for user 1
-                db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+                var meta = {}
+                db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                     if (err) return done(err)
                     assert.equal(test_image_2_hash, subimage_id)
                     // add the same subimage for user 2
-                    db.addSubImage(user_id_2, image_id, test_image_2, (err, subimage_id) => {
+                    db.addSubImage(user_id_2, image_id, test_image_2, meta, (err, subimage_id) => {
                         if (err) return done(err)
                         assert.equal(test_image_2_hash, subimage_id)
                         done(err)
@@ -321,7 +323,8 @@ describe('removeSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 // remove unknown image id
@@ -338,7 +341,8 @@ describe('removeSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 // remove unknown image id
@@ -355,7 +359,8 @@ describe('removeSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 // remove unknown image id
@@ -396,7 +401,8 @@ describe('getSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 // get subimage
@@ -415,11 +421,12 @@ describe('getSubImage', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id2) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id2) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id2)
                 // add subimage 2
-                db.addSubImage(user_id_1, image_id, test_image_1, (err, subimage_id1) => {
+                db.addSubImage(user_id_1, image_id, test_image_1, meta, (err, subimage_id1) => {
                     if (err) return done(err)
                     assert.equal(test_image_1_hash, subimage_id1)
                     // get subimage 1
@@ -455,13 +462,16 @@ describe('getSubImageList', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id) => {
+            var meta = {"a": 2, "b": "bbb"}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id)
                 // get subimage list
                 db.getSubImageList(user_id_1, test_image_1_hash, (err, image_list) => {
                     if (err) return done(err)
                     assert.equal(1, image_list.length)
+                    assert.equal(meta.a, image_list[0].meta.a)
+                    assert.equal(meta.b, image_list[0].meta.b)
                     done(err)
                 })
             })
@@ -474,11 +484,12 @@ describe('getSubImageList', function() {
             if (err) return done(err)
             assert.equal(test_image_1_hash, image_id)
             // add subimage
-            db.addSubImage(user_id_1, image_id, test_image_2, (err, subimage_id2) => {
+            var meta = {}
+            db.addSubImage(user_id_1, image_id, test_image_2, meta, (err, subimage_id2) => {
                 if (err) return done(err)
                 assert.equal(test_image_2_hash, subimage_id2)
                 // add subimage 2
-                db.addSubImage(user_id_1, image_id, test_image_1, (err, subimage_id1) => {
+                db.addSubImage(user_id_1, image_id, test_image_1, meta, (err, subimage_id1) => {
                     if (err) return done(err)
                     assert.equal(test_image_1_hash, subimage_id1)
                     // get subimage list

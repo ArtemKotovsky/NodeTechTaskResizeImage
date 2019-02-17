@@ -9,15 +9,15 @@ const uuid = require('uuid/v1');
   DB INTERFACE 
     
     init(db_file_path, db_files_cache_path)
-    addImage(user_id, image, callback)
-    removeImage(user_id, image_id, callback)
-    getImage(user_id, image_id, callback)
-    getImageList(user_id, callback)
-    removeUserData(user_id, callback)
-    addSubImage(user_id, image_id, subimage, callback)
-    removeSubImage(user_id, image_id, subimage_id, callback)
-    getSubImage(user_id, image_id, subimage_id, callback)
-    getSubImageList(user_id, image_id, callback)
+    addImage(user_id, image, callback(err, image_id))
+    removeImage(user_id, image_id, callback(err))
+    getImage(user_id, image_id, callback(err, image_data))
+    getImageList(user_id, callback(err, image_list))
+    removeUserData(user_id, callback(err))
+    addSubImage(user_id, image_id, subimage, callback(err, subimage_id))
+    removeSubImage(user_id, image_id, subimage_id, callback(err))
+    getSubImage(user_id, image_id, subimage_id, callback(err, image_data))
+    getSubImageList(user_id, image_id, callback(err, image_list))
     
     user_id is not a part of this DB:
         1. it is just a ID of images' group
@@ -53,20 +53,19 @@ var getImageId = function(user_id, image) {
 
 var getImagePath = function(user_id, image_id, image_name) {
     // returns image path for image id
-    folder = getImageFolder(user_id, image_id)
+    var folder = getImageFolder(user_id, image_id)
     return path.join(folder, image_name)
 }
 
 var imageWriteToFile = function(image_path, image, callback) {
-    // callback(err, image_id)
+    // callback(err)
     
     if (logon)
     console.log("imageWriteToFile:",
         "image_path=", image_path)
         
     fs.writeFile(image_path, image, (err) => {
-        if (err) callback(err)
-        else callback(null, image_id)
+        callback(err)
     });
 }
 
@@ -148,18 +147,18 @@ module.exports = {
         // callback(err, image_id)
         // the function adds base (oridin) image to the DB
         
-        filename = "origin_" + uuid() + ".jpg"
-        image_id = getImageId(user_id, image)
-        image_file = getImagePath(user_id, image_id, filename)
-        image_folder = path.dirname(image_file)
-        timestamp = new Date().toISOString()
+        var filename = "origin_" + uuid() + ".jpg"
+        var image_id = getImageId(user_id, image)
+        var image_file = getImagePath(user_id, image_id, filename)
+        var image_folder = path.dirname(image_file)
+        var timestamp = new Date().toISOString()
 
         if (logon)
         console.log("addImage: ", 
             "user_id=", user_id, 
             "image_id=", image_id)
             
-        image_info = { 
+        var image_info = { 
             user_id: user_id, 
             image_id: image_id,
             timestamp: timestamp,
@@ -169,7 +168,7 @@ module.exports = {
 
         // TODO: try-catch for Sync methods?
         if (fs.existsSync(image_folder)) {
-            callback(new Error("Image already exisits [" + image_folder + "]"))
+            callback(new Error("Image already exisits " + image_id))
             return
         } else {
             fs.mkdirSync(image_folder, { recursive: true })
@@ -177,7 +176,7 @@ module.exports = {
         
         // Save an image to fs
         // in case of success - add record to db
-        imageWriteToFile(image_file, image, (err, image_id) => {
+        imageWriteToFile(image_file, image, (err) => {
             
             if (err) {
                 callback(err)
@@ -204,7 +203,7 @@ module.exports = {
             "user_id=", user_id, 
             "image_id=", image_id)
             
-        image_folder = getImageFolder(user_id, image_id)
+        var image_folder = getImageFolder(user_id, image_id)
         
         fs.remove(image_folder, err => {
             if (err) {
@@ -231,7 +230,7 @@ module.exports = {
                 return
             }
 
-            image_file = getImagePath(user_id, image_id, image_info.filename)
+            var image_file = getImagePath(user_id, image_id, image_info.filename)
             imageReadFromFile(image_file, callback)
         })
     },
@@ -257,7 +256,7 @@ module.exports = {
         if (logon)
         console.log("removeUser: user_id=", user_id)
     
-        user_folder = getUserFolder(user_id)
+        var user_folder = getUserFolder(user_id)
         
         fs.remove(user_folder, err => {
             if (err) {
@@ -273,14 +272,14 @@ module.exports = {
             })
         })
     },
-    addSubImage: function(user_id, image_id, subimage, callback) {
+    addSubImage: function(user_id, image_id, subimage, meta, callback) {
         // callback(err, subimage_id)
         // the function adds subimage to the DB
         
-        filename = "subimage_" + uuid() + ".jpg"
-        subimage_id = getImageId(user_id, subimage)
-        image_file = getImagePath(user_id, image_id, filename)
-        timestamp = new Date().toISOString()
+        var filename = "subimage_" + uuid() + ".jpg"
+        var subimage_id = getImageId(user_id, subimage)
+        var image_file = getImagePath(user_id, image_id, filename)
+        var timestamp = new Date().toISOString()
         
         if (logon)
         console.log("addSubImage: ", 
@@ -288,13 +287,14 @@ module.exports = {
             "subimage_id=", subimage_id,
             "image_id=", image_id)
 
-        image_info = { 
+        var image_info = { 
             user_id: user_id, 
             image_id: image_id,
             subimage_id: subimage_id,
             timestamp: timestamp,
             origin: false, //subimage
-            filename: filename
+            filename: filename,
+            meta: meta
         }
         
         dbFindImage(user_id, image_id, null, (err, _) => {
@@ -350,7 +350,7 @@ module.exports = {
                 return
             }
             
-            image_file = getImagePath(user_id, image_id, image_info.filename)
+            var image_file = getImagePath(user_id, image_id, image_info.filename)
             fs.unlink(image_file, (err) => {
                 
                 if (err) {
@@ -379,7 +379,7 @@ module.exports = {
                 return
             }
             
-            image_file = getImagePath(user_id, image_id, image_info.filename)
+            var image_file = getImagePath(user_id, image_id, image_info.filename)
             imageReadFromFile(image_file, callback)
         })
     },

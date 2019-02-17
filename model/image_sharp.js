@@ -3,9 +3,9 @@ const sharp = require('sharp')
 /*
   IMAGE INTERFACE 
   
-    resize(image, width, heigh, callback)
-    resize(image, width, heigh, x, y, callback)
-    resize(image, width, heigh, x, y, other_optional_args, callback)
+    resize(image, width, heigh, callback(err, data))
+    resize(image, width, heigh, x, y, callback(err, data))
+    resize(image, width, heigh, x, y, other_optional_args, callback(err, data))
 */
 
 isNumeric = function(n){
